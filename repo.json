@@ -1,0 +1,14 @@
+{
+  "name": "Yaksha Extensions",
+  "version": 1,
+  "extensions": [
+    {
+      "name": "Yaksha Comics",
+      "pkg": "eu.kanade.tachiyomi.extension.en.yakshacomics",
+      "version": 1,
+      "lang": "en",
+      "url": "YakshaComics.kt",
+      "nsfw": false
+    }
+  ]
+}
