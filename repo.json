@@ -7,8 +7,7 @@
       "pkg": "eu.kanade.tachiyomi.extension.en.yakshacomics",
       "version": 1,
       "lang": "en",
-      "url": "YakshaComics.kt",
-      "nsfw": false
+      "url": "https://raw.githubusercontent.com/UsaidQazi/YakshaComic/main/YakshaComics.dex"
     }
   ]
 }
