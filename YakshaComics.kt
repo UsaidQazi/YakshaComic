@@ -1,0 +1,102 @@
+```kotlin
+package eu.kanade.tachiyomi.extension.en.yakshacomics
+
+import eu.kanade.tachiyomi.source.model.*
+import eu.kanade.tachiyomi.source.online.HttpSource
+import okhttp3.Request
+import okhttp3.Response
+import org.jsoup.Jsoup
+import org.jsoup.nodes.Document
+import java.text.SimpleDateFormat
+import java.util.Locale
+
+class YakshaComics : HttpSource() {
+    override val name = "Yaksha Comics"
+    override val baseUrl = "https://yakshacomics.com"
+    override val lang = "en"
+    override val supportsLatest = true
+
+    private val dateFormat = SimpleDateFormat("MMMM d, yyyy", Locale.ENGLISH)
+
+    override fun popularMangaRequest(page: Int): Request {
+        return GET("$baseUrl/manga/page/$page", headers)
+    }
+
+    override fun popularMangaParse(response: Response): MangasPage {
+        val document = response.asJsoup()
+        val mangaElements = document.select("div.bs div.bsx")
+        val mangas = mangaElements.map {
+            SManga.create().apply {
+                title = it.select("a").attr("title")
+                thumbnail_url = it.select("img").attr("src")
+                setUrlWithoutDomain(it.select("a").attr("href"))
+            }
+        }
+        val hasNext = document.select("a.next").isNotEmpty()
+        return MangasPage(mangas, hasNext)
+    }
+
+    override fun latestUpdatesRequest(page: Int): Request {
+        return popularMangaRequest(page)
+    }
+
+    override fun latestUpdatesParse(response: Response): MangasPage {
+        return popularMangaParse(response)
+    }
+
+    override fun searchMangaRequest(page: Int, query: String, filters: FilterList): Request {
+        return GET("$baseUrl/page/$page/?s=$query&post_type=wp-manga", headers)
+    }
+
+    override fun searchMangaParse(response: Response): MangasPage {
+        return popularMangaParse(response)
+    }
+
+    override fun mangaDetailsRequest(manga: SManga): Request {
+        return GET(baseUrl + manga.url, headers)
+    }
+
+    override fun mangaDetailsParse(response: Response): SManga {
+        val doc = response.asJsoup()
+        return SManga.create().apply {
+            title = doc.select("div.post-title h1").text()
+            author = doc.select("div.author-content").text()
+            artist = author
+            genre = doc.select("div.genres-content a").joinToString { it.text() }
+            description = doc.select("div.description-summary").text()
+            status = SManga.ONGOING
+        }
+    }
+
+    override fun chapterListRequest(manga: SManga): Request {
+        return GET(baseUrl + manga.url, headers)
+    }
+
+    override fun chapterListParse(response: Response): List<SChapter> {
+        val doc = response.asJsoup()
+        return doc.select("li.wp-manga-chapter").map {
+            SChapter.create().apply {
+                name = it.select("a").text()
+                setUrlWithoutDomain(it.select("a").attr("href"))
+            }
+        }
+    }
+
+    override fun pageListRequest(chapter: SChapter): Request {
+        return GET(baseUrl + chapter.url, headers)
+    }
+
+    override fun pageListParse(response: Response): List<Page> {
+        val doc = response.asJsoup()
+        return doc.select("div.reading-content img").mapIndexed { index, element ->
+            Page(index, "", element.attr("src"))
+        }
+    }
+
+    override fun imageUrlRequest(page: Page): Request {
+        return GET(page.imageUrl!!, headers)
+    }
+
+    private fun Response.asJsoup(): Document = Jsoup.parse(body!!.string())
+}
+```
